@@ -18,8 +18,9 @@ Load plan, review critically, execute tasks in batches, report for review betwee
 ### Step 1: Load and Review Plan
 1. Read plan file
 2. Review critically - identify any questions or concerns about the plan
-3. If concerns: Raise them with your human partner before starting
-4. If no concerns: Create TodoWrite and proceed
+3. Present your review summary to the user (open questions, risks, decisions needed)
+4. **MANDATORY STOP:** Ask explicitly: "Ready to proceed with the first batch, or do you want to adjust the plan first?"
+5. **Do NOT create TodoWrite. Do NOT touch any file. Wait for explicit go-ahead.**
 
 ### Step 2: Execute Batch
 **Default: First 3 tasks**
@@ -69,12 +70,22 @@ After all tasks complete and verified:
 
 ## Remember
 - Review plan critically first
+- **ALWAYS stop and confirm before executing — even if the plan looks perfect**
 - Follow plan steps exactly
 - Don't skip verifications
 - Reference skills when plan says to
 - Between batches: just report and wait
 - Stop when blocked, don't guess
 - Never start implementation on main/master branch without explicit user consent
+
+## Red Flags — You Are About to Skip the Confirmation
+
+| Thought | Reality |
+|---|---|
+| "The plan looks good, no concerns" | Confirmation is not about concerns. It is unconditional. |
+| "User said 'continue' or 'proceed'" | Means resume the workflow. Step 1 still requires explicit go-ahead. |
+| "I'll just start the first task" | No. Stop. Ask first. Always. |
+| "The user is clearly ready" | Let the user say that. Don't infer it. |
 
 ## Integration
 
