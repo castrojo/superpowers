@@ -15,7 +15,9 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Context:** This should be run in a dedicated worktree (created by brainstorming skill).
 
-**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+**Save plans to:** `~/.config/opencode/plans/<repo-name>/YYYY-MM-DD-<feature-name>.md`
+
+**NEVER save plans inside the git repo** (no `docs/`, no `.planning/`, no `plans/` in repo root). Plans are personal workflow artifacts — they do not belong in version control.
 
 ## Bite-Sized Task Granularity
 
@@ -94,11 +96,67 @@ git commit -m "feat: add specific feature"
 - Reference relevant skills with @ syntax
 - DRY, YAGNI, TDD, frequent commits
 
+## Plan Review (Mandatory Before Execution)
+
+After saving the plan file, **run both review skills before offering execution options.**
+Do NOT skip this. Do NOT proceed to the execution handoff if either review finds blockers.
+
+### Step 1: Document completeness — `plan-self-review`
+
+**REQUIRED SUB-SKILL:** Use `plan-self-review`
+
+Score the plan (100pt: clarity 25, comprehensiveness 25, feasibility 25, consistency 25).
+Produce a prioritized deficiency checklist. Edit the plan to resolve all deficiencies.
+Confirm no logical contradictions or missing elements (scope, risks, dependencies).
+
+Re-save the plan file after any edits.
+
+### Step 2: Architecture review — `architecture-review`
+
+**REQUIRED SUB-SKILL:** Use `architecture-review`
+
+Apply to the proposed code structure in the plan:
+- Map directory/module boundaries being added or changed
+- Check for circular dependencies, god modules, leaky abstractions
+- Classify any issues: critical (blocks dev), high (maintenance burden), medium/low (friction)
+- Document findings inline in the plan under a `## Known Issues / Required Fixes` section
+
+Any critical or high severity issue MUST be resolved in the plan before proceeding.
+Medium/low issues MUST be documented inline with a resolution note.
+
+### Step 3: Annotate the plan
+
+Add a header block after the plan's `---` separator documenting review results:
+
+```markdown
+## KNOWN ISSUES / REQUIRED FIXES
+
+> Identified during pre-execution correctness review on YYYY-MM-DD.
+> Each issue is annotated inline in the relevant task.
+> Resolve each one as you reach that task — do not skip them.
+
+### CRITICAL — will cause compile failure or silent runtime bug
+...
+
+### MODERATE — wrong props / wrong data shape / code won't work as described
+...
+
+### MINOR — cosmetic / easy to fix in passing
+...
+
+### INFORMATIONAL — important context for the executor, no code changes required
+...
+```
+
+If no issues are found in a severity tier, omit that tier.
+
+---
+
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+After both reviews pass and the plan is updated, offer execution choice:
 
-**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+**"Plan complete and saved to `~/.config/opencode/plans/<repo>/<filename>.md`. Two execution options:**
 
 **1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
 
