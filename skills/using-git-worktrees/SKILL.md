@@ -9,98 +9,75 @@ description: Use when starting feature work that needs isolation from current wo
 
 Git worktrees create isolated workspaces sharing the same repository, allowing work on multiple branches simultaneously without switching.
 
-**Core principle:** Systematic directory selection + safety verification = reliable isolation.
+**Core principle:** Call `worktree_create` — the plugin handles the rest. A new terminal opens with OpenCode already running in the worktree.
 
 **Announce at start:** "I'm using the using-git-worktrees skill to set up an isolated workspace."
 
-## Directory Selection Process
+## How It Works
 
-Follow this priority order:
+The `opencode-worktree` plugin is globally installed. It provides two tools:
 
-### 1. Check Existing Directories
+| Tool | Purpose |
+|------|---------|
+| `worktree_create(branch, baseBranch?)` | Creates worktree, syncs files, runs hooks, forks session, spawns terminal with OpenCode |
+| `worktree_delete(reason)` | Commits snapshot, removes worktree, cleans up session |
 
-```bash
-# Check in priority order
-ls -d .worktrees 2>/dev/null     # Preferred (hidden)
-ls -d worktrees 2>/dev/null      # Alternative
-```
-
-**If found:** Use that directory. If both exist, `.worktrees` wins.
-
-### 2. Check CLAUDE.md
-
-```bash
-grep -i "worktree.*director" CLAUDE.md 2>/dev/null
-```
-
-**If preference specified:** Use it without asking.
-
-### 3. Ask User
-
-If no directory exists and no CLAUDE.md preference:
-
-```
-No worktree directory found. Where should I create worktrees?
-
-1. .worktrees/ (project-local, hidden)
-2. ~/.config/superpowers/worktrees/<project-name>/ (global location)
-
-Which would you prefer?
-```
-
-## Safety Verification
-
-### For Project-Local Directories (.worktrees or worktrees)
-
-**MUST verify directory is ignored before creating worktree:**
-
-```bash
-# Check if directory is ignored (respects local, global, and system gitignore)
-git check-ignore -q .worktrees 2>/dev/null || git check-ignore -q worktrees 2>/dev/null
-```
-
-**If NOT ignored:**
-
-Per Jesse's rule "Fix broken things immediately":
-1. Add appropriate line to .gitignore
-2. Commit the change
-3. Proceed with worktree creation
-
-**Why critical:** Prevents accidentally committing worktree contents to repository.
-
-### For Global Directory (~/.config/superpowers/worktrees)
-
-No .gitignore verification needed - outside project entirely.
+Worktrees are stored at `~/.local/share/opencode/worktree/<project-id>/<branch>/` — outside the repository, so no `.gitignore` concerns.
 
 ## Creation Steps
 
-### 1. Detect Project Name
+### 1. Call `worktree_create`
 
-```bash
-project=$(basename "$(git rev-parse --show-toplevel)")
+```
+worktree_create(branch: "feature/my-feature", baseBranch?: "main")
 ```
 
-### 2. Create Worktree
+The plugin will:
+1. Create the git worktree at `~/.local/share/opencode/worktree/<project-id>/<branch>`
+2. Copy files and symlink dirs per `.opencode/worktree.jsonc` (auto-created on first use)
+3. Run `postCreate` hooks (e.g. `pnpm install`) if configured
+4. Fork the current session with context (plan, delegations)
+5. Spawn a new terminal window/tmux window with OpenCode running
 
+### 2. Offer to Open VS Code
+
+Use the `question` tool to ask the user via the TUI selector:
+
+- Question: "Open VS Code in the worktree so you can follow along?"
+- Header: "Open VS Code?"
+- Options:
+  - `Yes` — "Open VS Code in the worktree now"
+  - `No` — "Skip, I'll open it myself if needed"
+- `custom: false` (selector only, no free-text)
+
+If the user selects **Yes**, run:
 ```bash
-# Determine full path
-case $LOCATION in
-  .worktrees|worktrees)
-    path="$LOCATION/$BRANCH_NAME"
-    ;;
-  ~/.config/superpowers/worktrees/*)
-    path="~/.config/superpowers/worktrees/$project/$BRANCH_NAME"
-    ;;
-esac
-
-# Create worktree with new branch
-git worktree add "$path" -b "$BRANCH_NAME"
-cd "$path"
+code <worktreePath>
 ```
 
-### 3. Run Project Setup
+### 2b. Offer to Open Browser (web projects only)
 
-Auto-detect and run appropriate setup:
+If the project has a dev server (detected by `package.json` with `dev`/`start` script, `Makefile` with a `serve` target, etc.), use the `question` tool to ask:
+
+- Question: "Open a browser with the live site running in hot reload?"
+- Header: "Open browser?"
+- Options:
+  - `Yes, start dev server + open browser` — "Start the dev server and open the site in the browser"
+  - `No` — "Skip"
+- `custom: false`
+
+If the user selects **Yes**:
+1. Start the dev server in the background (e.g. `npm run dev &`, `pnpm dev &`) inside the worktree
+2. Wait a moment for it to bind to a port, then open the URL in the default browser:
+   ```bash
+   xdg-open http://localhost:<port>   # Linux
+   open http://localhost:<port>        # macOS
+   ```
+   Detect the port from the dev server output or fall back to common defaults (3000, 5173, 4321, 8080).
+
+### 3. Run Project Setup (in new terminal)
+
+After the terminal spawns, auto-detect and run setup if not already handled by hooks:
 
 ```bash
 # Node.js
@@ -119,14 +96,11 @@ if [ -f go.mod ]; then go mod download; fi
 
 ### 4. Verify Clean Baseline
 
-Run tests to ensure worktree starts clean:
+Run tests to confirm the worktree starts clean:
 
 ```bash
-# Examples - use project-appropriate command
-npm test
-cargo test
-pytest
-go test ./...
+# Use project-appropriate command
+npm test / cargo test / pytest / go test ./... / just check
 ```
 
 **If tests fail:** Report failures, ask whether to proceed or investigate.
@@ -136,74 +110,61 @@ go test ./...
 ### 5. Report Location
 
 ```
-Worktree ready at <full-path>
+Worktree ready at ~/.local/share/opencode/worktree/<project-id>/<branch>
 Tests passing (<N> tests, 0 failures)
 Ready to implement <feature-name>
 ```
+
+## Cleanup
+
+When work is complete, call `worktree_delete` — do NOT use `git worktree remove` directly:
+
+```
+worktree_delete(reason: "Feature complete")
+```
+
+The plugin will commit all uncommitted changes with a snapshot message, remove the worktree, and clean up the session.
 
 ## Quick Reference
 
 | Situation | Action |
 |-----------|--------|
-| `.worktrees/` exists | Use it (verify ignored) |
-| `worktrees/` exists | Use it (verify ignored) |
-| Both exist | Use `.worktrees/` |
-| Neither exists | Check CLAUDE.md → Ask user |
-| Directory not ignored | Add to .gitignore + commit |
-| Tests fail during baseline | Report failures + ask |
-| No package.json/Cargo.toml | Skip dependency install |
+| Starting a feature / branch work | `worktree_create(branch)` |
+| Creating from specific base | `worktree_create(branch, baseBranch)` |
+| Work complete | `worktree_delete(reason)` |
+| Tests fail at baseline | Report failures + ask before proceeding |
+| Project needs `.env` sync | Configure `.opencode/worktree.jsonc` |
+| Project needs `node_modules` symlink | Configure `.opencode/worktree.jsonc` |
 
-## Common Mistakes
+## Project Config (`.opencode/worktree.jsonc`)
 
-### Skipping ignore verification
+Auto-created on first `worktree_create`. Common patterns:
 
-- **Problem:** Worktree contents get tracked, pollute git status
-- **Fix:** Always use `git check-ignore` before creating project-local worktree
-
-### Assuming directory location
-
-- **Problem:** Creates inconsistency, violates project conventions
-- **Fix:** Follow priority: existing > CLAUDE.md > ask
-
-### Proceeding with failing tests
-
-- **Problem:** Can't distinguish new bugs from pre-existing issues
-- **Fix:** Report failures, get explicit permission to proceed
-
-### Hardcoding setup commands
-
-- **Problem:** Breaks on projects using different tools
-- **Fix:** Auto-detect from project files (package.json, etc.)
-
-## Example Workflow
-
-```
-You: I'm using the using-git-worktrees skill to set up an isolated workspace.
-
-[Check .worktrees/ - exists]
-[Verify ignored - git check-ignore confirms .worktrees/ is ignored]
-[Create worktree: git worktree add .worktrees/auth -b feature/auth]
-[Run npm install]
-[Run npm test - 47 passing]
-
-Worktree ready at /Users/jesse/myproject/.worktrees/auth
-Tests passing (47 tests, 0 failures)
-Ready to implement auth feature
+```jsonc
+{
+  "sync": {
+    "copyFiles": [".env", ".env.local"],   // copied per worktree
+    "symlinkDirs": ["node_modules"]         // symlinked to save space
+  },
+  "hooks": {
+    "postCreate": ["pnpm install"],
+    "preDelete": ["docker compose down"]
+  }
+}
 ```
 
 ## Red Flags
 
 **Never:**
-- Create worktree without verifying it's ignored (project-local)
+- Call `git worktree add` directly — use `worktree_create`
+- Call `git worktree remove` directly — use `worktree_delete`
 - Skip baseline test verification
 - Proceed with failing tests without asking
-- Assume directory location when ambiguous
-- Skip CLAUDE.md check
 
 **Always:**
-- Follow directory priority: existing > CLAUDE.md > ask
-- Verify directory is ignored for project-local
-- Auto-detect and run project setup
+- Use `worktree_create` so the terminal spawns automatically
+- Use `worktree_delete` so the snapshot commit and cleanup happen correctly
+- Auto-detect and run project setup if not covered by hooks
 - Verify clean test baseline
 
 ## Integration

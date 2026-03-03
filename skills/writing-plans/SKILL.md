@@ -15,7 +15,9 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Context:** This should be run in a dedicated worktree (created by brainstorming skill).
 
-**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+**Save plans to:** `~/.config/opencode/plans/<project-name>/YYYY-MM-DD-<feature-name>.md`
+
+> Plans MUST live outside the git repo. Never commit plans to the project repository.
 
 ## Bite-Sized Task Granularity
 
@@ -94,11 +96,29 @@ git commit -m "feat: add specific feature"
 - Reference relevant skills with @ syntax
 - DRY, YAGNI, TDD, frequent commits
 
+## Epic Issue Creation
+
+After saving the plan, create a GitHub epic issue to track implementation.
+
+**Use epic-creation skill:**
+- Provide plan file path
+- Skill extracts metadata and creates epic
+- Plan gets updated with epic reference
+
+**Announce:**
+```
+✅ Plan saved: ~/.config/opencode/plans/<project>/<filename>.md
+✅ Epic issue created: #<number>
+```
+
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+After creating the epic, offer execution choice:
 
-**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+**"Plan complete and saved to `~/.config/opencode/plans/<project>/<filename>.md`**
+**Epic issue created: #<epic-number>**
+
+**Two execution options:**
 
 **1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
 
