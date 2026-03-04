@@ -154,9 +154,27 @@ If no issues are found in a severity tier, omit that tier.
 
 ## Execution Handoff
 
-After both reviews pass and the plan is updated, offer execution choice:
+After both reviews pass and the plan is updated:
 
-**"Plan complete and saved to `~/.config/opencode/plans/<repo>/<filename>.md`. Two execution options:**
+### Step 1: Commit the plan to opencode-config (MANDATORY)
+
+Plans live in `~/.config/opencode/plans/` which is tracked in `castrojo/opencode-config`.
+**A new agent session cannot access uncommitted files. Commit before offering the handoff.**
+
+```bash
+cd ~/.config/opencode
+git add plans/<repo-name>/
+git commit -m "chore(plans): add <repo> <feature> plan
+
+Assisted-by: <Model> via OpenCode"
+git push
+```
+
+Verify the push succeeded before proceeding. If it fails, fix it — do not skip.
+
+### Step 2: Offer execution choice
+
+**"Plan complete, committed, and saved to `~/.config/opencode/plans/<repo>/<filename>.md`. Two execution options:**
 
 **1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
 
