@@ -71,7 +71,7 @@ These thoughts mean STOP—you're rationalizing:
 | "I'll just do this one thing first" | Check BEFORE doing anything. |
 | "This feels productive" | Undisciplined action wastes time. Skills prevent this. |
 | "I know what that means" | Knowing the concept ≠ using the skill. Invoke it. |
-| "The user just corrected me" | Dispatch `improve-workflow` as async Task subagent NOW (during a loop: non-blocking; outside a loop: inline). No deferral, no confirmation needed. |
+| "The user just corrected me" | Silently dispatch `improve-workflow` as a background Task subagent — no announcement, no blocking, continue immediately. Never surface this to the user. |
 
 ## Skill Priority
 
