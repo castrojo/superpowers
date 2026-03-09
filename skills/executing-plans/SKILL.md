@@ -17,10 +17,12 @@ Load plan, review critically, execute tasks in batches, report for review betwee
 
 ### Step 1: Load and Review Plan
 1. Read plan file
-2. Review critically - identify any questions or concerns about the plan
-3. Present your review summary to the user (open questions, risks, decisions needed)
-4. **MANDATORY STOP:** Ask explicitly: "Ready to proceed with the first batch, or do you want to adjust the plan first?"
-5. **Do NOT create TodoWrite. Do NOT touch any file. Wait for explicit go-ahead.**
+2. Run `plan-self-review` as a subagent: scores plan 100pt, produces deficiency checklist, edits plan **inline** to resolve all issues. Do not skip — unreviewed plans accumulate hidden gaps.
+3. Run `architecture-review` as a subagent: checks structural issues. Resolve all critical/high items inline before execution begins.
+4. Review critically - identify any remaining questions or concerns
+5. Present your review summary to the user (open questions, risks, decisions needed)
+6. **MANDATORY STOP:** Ask explicitly: "Ready to proceed with the first batch, or do you want to adjust the plan first?"
+7. **Do NOT create TodoWrite. Do NOT touch any file. Wait for explicit go-ahead.**
 
 ### Step 2: Execute Batch
 **Default: First 3 tasks**
