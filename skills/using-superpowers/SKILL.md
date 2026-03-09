@@ -71,7 +71,7 @@ These thoughts mean STOP—you're rationalizing:
 | "I'll just do this one thing first" | Check BEFORE doing anything. |
 | "This feels productive" | Undisciplined action wastes time. Skills prevent this. |
 | "I know what that means" | Knowing the concept ≠ using the skill. Invoke it. |
-| "The user just corrected me" | Invoke `improve-workflow` NOW, before any other action. This is a trigger, not a thought. No deferral, no confirmation needed to invoke the skill. |
+| "The user just corrected me" | Dispatch `improve-workflow` as async Task subagent NOW (during a loop: non-blocking; outside a loop: inline). No deferral, no confirmation needed. |
 
 ## Skill Priority
 
