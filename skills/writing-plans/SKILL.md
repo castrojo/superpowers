@@ -184,17 +184,18 @@ Do NOT commit the markdown file to opencode-config. If there are uncommitted pla
 
 **"Plan imported to DB (plan_id: `<plan-id>`). Two execution options:**
 
-**1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
+**1. Subagent-Driven (this session)** — invoke `loop-start` now, then `loop-task` per task with a fresh subagent each run; devaipod is the execution environment for build/validation; `loop-gate` after all runs; `loop-end` to close.
 
-**2. Parallel Session (separate)** - Open new session with executing-plans, batch execution with checkpoints
+**2. Parallel Session (separate)** — open a new session with `executing-plans`; it loads the plan from DB, gates on confirmation, then routes to `loop-start → loop-task → loop-gate → loop-end`.
+
+Both options run through the loop system. The difference is only session context.
 
 **Which approach?"**
 
 **If Subagent-Driven chosen:**
-- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
-- Stay in this session
-- Fresh subagent per task + code review
+- Invoke `loop-start` immediately in this session
+- **REQUIRED SUB-SKILL:** Use `loop-start`, then `loop-task` × N, then `loop-gate`, then `loop-end`
 
 **If Parallel Session chosen:**
 - Guide them to open new session in worktree
-- **REQUIRED SUB-SKILL:** New session uses superpowers:executing-plans
+- **REQUIRED SUB-SKILL:** New session uses `superpowers:executing-plans`

@@ -7,91 +7,117 @@ description: Use when you have a written implementation plan to execute in a sep
 
 ## Overview
 
-Load plan, review critically, execute tasks in batches, report for review between batches.
+Thin routing skill. Loads plan from DB, presents a light review, gates on explicit user confirmation, then hands off to the loop system. Does NOT execute tasks directly.
 
-**Core principle:** Batch execution with checkpoints for architect review.
+**Core principle:** The loop system (loop-start → loop-task × N → loop-gate → loop-end) is the execution engine. This skill is only the on-ramp.
 
-**Announce at start:** "I'm using the executing-plans skill to implement this plan."
+**Announce at start:** "I'm using the executing-plans skill to load the plan and route to the loop."
 
-## The Process
+---
 
-### Step 1: Load and Review Plan
-1. Read plan file
-2. Run `plan-self-review` as a subagent: scores plan 100pt, produces deficiency checklist, edits plan **inline** to resolve all issues. Do not skip — unreviewed plans accumulate hidden gaps.
-3. Run `architecture-review` as a subagent: checks structural issues. Resolve all critical/high items inline before execution begins.
-4. Review critically - identify any remaining questions or concerns
-5. Present your review summary to the user (open questions, risks, decisions needed)
-6. **MANDATORY STOP:** Ask explicitly: "Ready to proceed with the first batch, or do you want to adjust the plan first?"
-7. **Do NOT create TodoWrite. Do NOT touch any file. Wait for explicit go-ahead.**
+## Step 1: Load plan from DB
 
-### Step 2: Execute Batch
-**Default: First 3 tasks**
+Plans live in the workflow-state DB — not in files. Never use Read or Bash to load a plan.
 
-For each task:
-1. Mark as in_progress
-2. Follow each step exactly (plan has bite-sized steps)
-3. Run verifications as specified
-4. Mark as completed
+```
+workflow-state_get_plan_tasks(repo: "<REPO>", plan_id: "<plan_id>")
+```
 
-### Step 3: Report
-When batch complete:
-- Show what was implemented
-- Show verification output
-- Say: "Ready for feedback."
+If `plan_id` is unknown, ask the user: "What is the plan_id? (format: YYYY-MM-DD-feature-name)"
 
-### Step 4: Continue
-Based on feedback:
-- Apply changes if needed
-- Execute next batch
-- Repeat until complete
+Display the task list:
+```
+Plan: <plan_id>
+Tasks: <N> total
+  [ ] 1. <description>
+  [ ] 2. <description>
+  ...
+```
 
-### Step 5: Complete Development
+---
 
-After all tasks complete and verified:
-- Announce: "I'm using the finishing-a-development-branch skill to complete this work."
-- **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
-- Follow that skill to verify tests, present options, execute choice
+## Step 2: Light review
 
-## When to Stop and Ask for Help
+`plan-self-review` and `architecture-review` were already run during `writing-plans`. Do NOT re-run them.
 
-**STOP executing immediately when:**
-- Hit a blocker mid-batch (missing dependency, test fails, instruction unclear)
-- Plan has critical gaps preventing starting
-- You don't understand an instruction
-- Verification fails repeatedly
+Instead, do a quick sanity check — read the task list and flag only:
+- Tasks that reference files or APIs that no longer exist
+- Tasks whose dependencies are clearly wrong (e.g. task 3 requires output from task 5)
+- Any task description so vague it cannot be executed without guessing
 
-**Ask for clarification rather than guessing.**
+If nothing is flagged: say "Plan looks clean." and proceed.
+If issues are found: list them and ask the user to clarify before proceeding.
 
-## When to Revisit Earlier Steps
+---
 
-**Return to Review (Step 1) when:**
-- Partner updates the plan based on your feedback
-- Fundamental approach needs rethinking
+## Step 3: MANDATORY STOP
 
-**Don't force through blockers** - stop and ask.
+Use the `question` tool — do NOT touch any file until the user explicitly confirms:
 
-## Remember
-- Review plan critically first
-- **ALWAYS stop and confirm before executing — even if the plan looks perfect**
-- Follow plan steps exactly
-- Don't skip verifications
-- Reference skills when plan says to
-- Between batches: just report and wait
-- Stop when blocked, don't guess
-- Never start implementation on main/master branch without explicit user consent
+```
+question: "Plan loaded (<N> tasks). Ready to set up the worktree and start the loop?"
+options:
+  - "Yes — set up worktree and start loop (Recommended)"
+  - "No — I want to review or adjust the plan first"
+  - "No — start loop without a new worktree (already on the right branch)"
+```
 
-## Red Flags — You Are About to Skip the Confirmation
+**Do NOT create any TodoWrite. Do NOT touch any file. Wait for explicit go-ahead.**
 
-| Thought | Reality |
-|---|---|
-| "The plan looks good, no concerns" | Confirmation is not about concerns. It is unconditional. |
-| "User said 'continue' or 'proceed'" | Means resume the workflow. Step 1 still requires explicit go-ahead. |
-| "I'll just start the first task" | No. Stop. Ask first. Always. |
-| "The user is clearly ready" | Let the user say that. Don't infer it. |
+If the user wants to adjust the plan: help them update the DB tasks via `workflow-state_update_task_status` or by re-importing a revised task list via `workflow-state_import_plan`, then return to Step 3.
+
+---
+
+## Step 4: Set up isolated workspace (if worktree option chosen)
+
+**REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees`
+
+Follow that skill to create an isolated branch and verify the clean baseline.
+
+If the user chose "start loop without a new worktree": skip this step.
+
+---
+
+## Step 5: Route to loop-start
+
+**Invoke `loop-start` now.** This is not optional and not deferred — execute it in this same response.
+
+The loop system handles all execution from here:
+- `loop-start` → initializes DB state, confirms run count with user, sets goal
+- `loop-task` × N → each run dispatches a subagent; devaipod is the execution environment for build/validation tasks
+- `loop-gate` → after all runs in a phase: processes [GAP] findings, gates phase transition
+- `loop-end` → after all phases: backport review, integrity checklist, state reset
+
+Do not return to this skill after handing off to loop-start. The loop skills own execution from here.
+
+---
+
+## When to Stop and Ask
+
+**STOP immediately when:**
+- Plan cannot be loaded from DB (plan_id not found)
+- Plan has critical structural issues (Step 2 flags blockers)
+- User asks to pause mid-loop (handle via loop-task's stop protocol)
+
+**Never:**
+- Execute tasks directly in this skill — that is loop-task's job
+- Read plan files from disk — plans are in the DB
+- Skip the MANDATORY STOP in Step 3
+- Start implementation on main without explicit user consent
+
+---
 
 ## Integration
 
-**Required workflow skills:**
-- **superpowers:using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
-- **superpowers:writing-plans** - Creates the plan this skill executes
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+**This skill is called from:**
+- `writing-plans` (Execution Handoff → Parallel Session option)
+- User explicitly opening a new session to execute a saved plan
+
+**This skill calls:**
+- `superpowers:using-git-worktrees` — isolated workspace (Step 4)
+- `loop-start` — hands off execution to the loop system (Step 5)
+
+**This skill does NOT call:**
+- `plan-self-review` — already done during writing-plans
+- `architecture-review` — already done during writing-plans
+- `finishing-a-development-branch` — called by loop-end if a PR is needed
