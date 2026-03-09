@@ -156,25 +156,33 @@ If no issues are found in a severity tier, omit that tier.
 
 After both reviews pass and the plan is updated:
 
-### Step 1: Commit the plan to opencode-config (MANDATORY)
+### Step 1: Import plan to workflow-state DB and delete the markdown file (MANDATORY)
 
-Plans live in `~/.config/opencode/plans/` which is tracked in `castrojo/opencode-config`.
-**A new agent session cannot access uncommitted files. Commit before offering the handoff.**
+Plans are tracked in the workflow-state postgres DB — NOT in `opencode-config`. Any session
+can query the DB directly via MCP. Committed markdown files are redundant state that will drift.
 
-```bash
-cd ~/.config/opencode
-git add plans/<repo-name>/
-git commit -m "chore(plans): add <repo> <feature> plan
+**Import each numbered task:**
 
-Assisted-by: <Model> via OpenCode"
-git push
+```
+workflow-state_import_plan(
+  repo: "<repo>",
+  plan_id: "<YYYY-MM-DD-feature>",
+  tasks: "[{\"task_num\": 1, \"description\": \"...\"}, ...]"
+)
 ```
 
-Verify the push succeeded before proceeding. If it fails, fix it — do not skip.
+**Then delete the markdown file:**
+
+```bash
+rm ~/.config/opencode/plans/<repo-name>/<plan-file>.md
+```
+
+Do NOT commit the markdown file to opencode-config. If there are uncommitted plan files in
+`~/.config/opencode/plans/`, delete them after importing — never commit them.
 
 ### Step 2: Offer execution choice
 
-**"Plan complete, committed, and saved to `~/.config/opencode/plans/<repo>/<filename>.md`. Two execution options:**
+**"Plan imported to DB (plan_id: `<plan-id>`). Two execution options:**
 
 **1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
 
