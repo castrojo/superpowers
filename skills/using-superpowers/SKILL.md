@@ -1,6 +1,6 @@
 ---
 name: using-superpowers
-description: Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions
+description: Use when starting any conversation - establishes how to find and use skills, requiring DB skill lookup before ANY response including clarifying questions
 ---
 
 <EXTREMELY-IMPORTANT>
@@ -13,24 +13,30 @@ This is not negotiable. This is not optional. You cannot rationalize your way ou
 
 ## How to Access Skills
 
-**In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you—follow it directly. Never use the Read tool on skill files.
+**In OpenCode (all environments):** Use `workflow-state_get_skill(skill_name: "X")` to retrieve the full skill from the DB in document order. This is the DB-first replacement for the `Skill` tool. Never use the `Skill` tool or `Read` tool on SKILL.md files — both read from disk and bypass the DB.
 
-**In other environments:** Check your platform's documentation for how skills are loaded.
+For targeted section lookups (when you only need part of a skill): use `workflow-state_search_skill(skill_name: "X", query: "Y")`.
+
+**If `get_skill` returns empty:** the skill is missing from the DB. Run the seeder:
+```bash
+go run ~/.config/opencode/mcp/state/seed/skills/main.go
+```
+Do NOT fall back to reading the SKILL.md file.
 
 # Using Skills
 
 ## The Rule
 
-**Invoke relevant or requested skills BEFORE any response or action.** Even a 1% chance a skill might apply means that you should invoke the skill to check. If an invoked skill turns out to be wrong for the situation, you don't need to use it.
+**Look up relevant skills in the DB BEFORE any response or action.** Even a 1% chance a skill might apply means that you should call `get_skill` to check. If a retrieved skill turns out to be wrong for the situation, you don't need to use it.
 
 ```dot
 digraph skill_flow {
     "User message received" [shape=doublecircle];
     "About to EnterPlanMode?" [shape=doublecircle];
     "Already brainstormed?" [shape=diamond];
-    "Invoke brainstorming skill" [shape=box];
+    "Call get_skill(brainstorming)" [shape=box];
     "Might any skill apply?" [shape=diamond];
-    "Invoke Skill tool" [shape=box];
+    "Call get_skill(skill_name)" [shape=box];
     "Announce: 'Using [skill] to [purpose]'" [shape=box];
     "Has checklist?" [shape=diamond];
     "Create TodoWrite todo per item" [shape=box];
@@ -38,14 +44,14 @@ digraph skill_flow {
     "Respond (including clarifications)" [shape=doublecircle];
 
     "About to EnterPlanMode?" -> "Already brainstormed?";
-    "Already brainstormed?" -> "Invoke brainstorming skill" [label="no"];
+    "Already brainstormed?" -> "Call get_skill(brainstorming)" [label="no"];
     "Already brainstormed?" -> "Might any skill apply?" [label="yes"];
-    "Invoke brainstorming skill" -> "Might any skill apply?";
+    "Call get_skill(brainstorming)" -> "Might any skill apply?";
 
     "User message received" -> "Might any skill apply?";
-    "Might any skill apply?" -> "Invoke Skill tool" [label="yes, even 1%"];
+    "Might any skill apply?" -> "Call get_skill(skill_name)" [label="yes, even 1%"];
     "Might any skill apply?" -> "Respond (including clarifications)" [label="definitely not"];
-    "Invoke Skill tool" -> "Announce: 'Using [skill] to [purpose]'";
+    "Call get_skill(skill_name)" -> "Announce: 'Using [skill] to [purpose]'";
     "Announce: 'Using [skill] to [purpose]'" -> "Has checklist?";
     "Has checklist?" -> "Create TodoWrite todo per item" [label="yes"];
     "Has checklist?" -> "Follow skill exactly" [label="no"];
@@ -65,12 +71,12 @@ These thoughts mean STOP—you're rationalizing:
 | "I can check git/files quickly" | Files lack conversation context. Check for skills. |
 | "Let me gather information first" | Skills tell you HOW to gather information. |
 | "This doesn't need a formal skill" | If a skill exists, use it. |
-| "I remember this skill" | Skills evolve. Read current version. |
+| "I remember this skill" | Skills evolve. Get current version from DB. |
 | "This doesn't count as a task" | Action = task. Check for skills. |
 | "The skill is overkill" | Simple things become complex. Use it. |
 | "I'll just do this one thing first" | Check BEFORE doing anything. |
 | "This feels productive" | Undisciplined action wastes time. Skills prevent this. |
-| "I know what that means" | Knowing the concept ≠ using the skill. Invoke it. |
+| "I know what that means" | Knowing the concept ≠ using the skill. Look it up. |
 | "The user just corrected me" | Silently dispatch `improve-workflow` as a background Task subagent — no announcement, no blocking, continue immediately. Never surface this to the user. |
 
 ## Skill Priority
