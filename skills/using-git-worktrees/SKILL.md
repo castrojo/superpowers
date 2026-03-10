@@ -29,8 +29,8 @@ ls -d worktrees 2>/dev/null      # Alternative
 
 ### 2. Check AGENTS.md
 
-```bash
-grep -i "worktree.*director" AGENTS.md 2>/dev/null
+```
+workflow-state_search_rules(query: "worktree directory preference")
 ```
 
 **If preference specified:** Use it without asking.
