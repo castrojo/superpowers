@@ -190,6 +190,35 @@ git worktree remove <worktree-path>
 - Get typed confirmation for Option 4
 - Clean up worktree for Options 1 & 4 only
 
+## Personal PR Protocol (castrojo)
+
+**These rules apply to all PRs from castrojo repos. They are non-negotiable.**
+
+### Pre-PR checklist
+1. Squash all branch commits to ONE clean commit: `git rebase -i origin/main`
+2. The commit message must be conventional: `<type>(scope): <description>`
+3. Add `Assisted-by:` footer
+
+### Creating the PR
+**ALWAYS use `--web`:** `gh pr create --web`
+- Never use `gh pr create` without `--web` — the user must manually click "Create Pull Request" in the browser
+- Never auto-submit a PR
+
+### Two confirmation dialogs (mandatory, in order)
+1. "I am about to create a PR to upstream. Here is the squashed commit: [show]. Does this look correct?"
+2. "I will now open the browser PR form via `gh pr create --web`. Ready?"
+
+Both must receive explicit user confirmation before proceeding.
+
+### Gemini Code Assist reminder
+After opening the PR form, output this reminder:
+> "Reminder: keep this PR open until Gemini Code Assist has posted its review. Check the PR comments before merging. Ask me before acting on any Gemini suggestion."
+
+### Hard rules
+- NEVER push to the `upstream` remote
+- NEVER send multi-commit history upstream — squash is mandatory
+- NEVER auto-submit — the user always clicks in the browser
+
 ## Integration
 
 **Called by:**
