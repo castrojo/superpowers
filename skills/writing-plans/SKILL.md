@@ -15,9 +15,9 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Context:** This should be run in a dedicated worktree (created by brainstorming skill).
 
-**Save plans to:** `~/.config/opencode/plans/<repo-name>/YYYY-MM-DD-<feature-name>.md`
+**Data Storage:** Plans must ONLY exist in the workflow-state postgres database. Use `workflow-state_import_plan` to load the plan directly. **Do not create `.md` plan files on disk anywhere.**
 
-**NEVER save plans inside the git repo** (no `docs/`, no `.planning/`, no `plans/` in repo root). Plans are personal workflow artifacts — they do not belong in version control.
+**NEVER save plans inside the git repo** (no `docs/`, no `.planning/`, no `plans/` in repo root). Plans are strictly DB-tracked personal workflow artifacts.
 
 ## Bite-Sized Task Granularity
 
@@ -109,7 +109,7 @@ Score the plan (100pt: clarity 25, comprehensiveness 25, feasibility 25, consist
 Produce a prioritized deficiency checklist. Edit the plan to resolve all deficiencies.
 Confirm no logical contradictions or missing elements (scope, risks, dependencies).
 
-Re-save the plan file after any edits.
+(Note: Do not save to a `.md` file, the plan exists only in memory until imported to DB).
 
 ### Step 2: Architecture review — `architecture-review`
 
@@ -156,7 +156,7 @@ If no issues are found in a severity tier, omit that tier.
 
 After both reviews pass and the plan is updated:
 
-### Step 1: Import plan to workflow-state DB and delete the markdown file (MANDATORY)
+### Step 1: Import plan to workflow-state DB (MANDATORY)
 
 Plans are tracked in the workflow-state postgres DB — NOT in `opencode-config`. Any session
 can query the DB directly via MCP. Committed markdown files are redundant state that will drift.
@@ -171,14 +171,7 @@ workflow-state_import_plan(
 )
 ```
 
-**Then delete the markdown file:**
-
-```bash
-rm ~/.config/opencode/plans/<repo-name>/<plan-file>.md
-```
-
-Do NOT commit the markdown file to opencode-config. If there are uncommitted plan files in
-`~/.config/opencode/plans/`, delete them after importing — never commit them.
+There are no markdown files to commit. If legacy `.md` files exist in `~/.config/opencode/plans/`, they should be migrated and removed over time.
 
 ### Step 2: Offer execution choice
 
