@@ -28,7 +28,7 @@ You MUST create a task for each of these items and complete them in order:
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get user approval after each section
-6. **Write design doc** — save to `~/.config/opencode/plans/<repo-name>/YYYY-MM-DD-<topic>-design.md` — NEVER inside the git repo, NEVER committed to version control
+6. **Capture design** — call `journal_write(title: "Design: <topic>", body: "<full design summary>", tags: "design-decision, <repo>")` — design lives in the journal, NOT on disk
 7. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
 ## Process Flow
@@ -81,8 +81,7 @@ digraph brainstorming {
 ## After the Design
 
 **Documentation:**
-- Write the validated design to `~/.config/opencode/plans/<repo-name>/YYYY-MM-DD-<topic>-design.md`
-- Plans NEVER go inside the git repo — NEVER commit design docs to version control
+- Call `journal_write(title: "Design: <topic>", body: "<full design summary>", tags: "design-decision, <repo>")` — design lives in the journal, NOT on disk, NEVER in a file in `plans/`, NEVER committed
 
 **Implementation:**
 - Invoke the writing-plans skill to create a detailed implementation plan

@@ -83,7 +83,7 @@ If the user chose "start loop without a new worktree": skip this step.
 **Invoke `loop-start` now.** This is not optional and not deferred — execute it in this same response.
 
 The loop system handles all execution from here:
-- `loop-start` → initializes DB state, confirms run count with user, sets goal
+- `loop-start` → initializes DB state, sets goal, auto-determines run count
 - `loop-task` × N → each run dispatches a subagent; devaipod is the execution environment for build/validation tasks
 - `loop-gate` → after all runs in a phase: processes [GAP] findings, gates phase transition
 - `loop-end` → after all phases: backport review, integrity checklist, state reset
